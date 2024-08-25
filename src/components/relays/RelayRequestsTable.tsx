@@ -1,9 +1,101 @@
-import React from "react";
-import { useListMerchantRequestsQuery } from "../../store/slices/apiSlice";
+import React, { useState } from "react";
+import { apiSlice, IRelayData, useListRelayRequestsQuery } from "../../store/slices/apiSlice";
+import { store } from "../../store/store";
+import { ConfirmModal } from "../common/ConfirmModal";
 
 export const RelayRequestsTable: React.FC = () => {
-  // const data = useSelector((state: RootState) => state.merchants.approved);
-  const { isFetching, data = [], error } = useListMerchantRequestsQuery();
+  const { isFetching, data = [], error, refetch: refetchRelays } = useListRelayRequestsQuery();
+  const [isAcceptModelVisible, setIsAcceptModalVisible] = useState(false);
+  const [isDeclineModelVisible, setIsDeclineModalVisible] = useState(false);
+  const [selectedRelay, setSelectedRelay] =useState<IRelayData | null>(null);
+
+  const onAcceptBtnClick = (value: IRelayData) => {
+    setIsAcceptModalVisible(true)
+    setSelectedRelay(value)
+  }
+
+  const onDeclineBtnClick = (value: IRelayData) => {
+    setIsDeclineModalVisible(true)
+    setSelectedRelay(value)
+  }
+
+  const handleOnAcceptClick = async (pubkey: string) => {
+    const { error } = await store.dispatch(
+      apiSlice.endpoints.acceptRelayRequest.initiate(pubkey)
+    );
+    if (error) {
+      alert(
+        `Failed to accept request with error: ${
+          (error as unknown as { error: string }).error
+        }`
+      );
+
+      // refetch merchant requests
+      refetchRelays();
+      return;
+    }
+  };
+
+  const handleOnDeclineClick = async (pubkey: string) => {
+    const { error } = await store.dispatch(
+      apiSlice.endpoints.declineRelayRequest.initiate(pubkey)
+    );
+    if (error) {
+      alert(
+        `Failed to accept request with error: ${
+          (error as unknown as { error: string }).error
+        }`
+      );
+
+      // refetch merchant requests
+      refetchRelays();
+      return;
+    }
+  };
+
+
+  if (isAcceptModelVisible && selectedRelay) {
+    return (
+      <ConfirmModal
+        title="Accept Relay request"
+        content="Do you want to accept relay request"
+        cancelButtonText="Cancel"
+        successButtonText="Accept"
+        onSuccessClick={async () => {
+          await handleOnAcceptClick(selectedRelay.pubkey)
+          setIsAcceptModalVisible(false);
+          setSelectedRelay(null);
+        }}
+        onCancelClick={() => {
+          setIsAcceptModalVisible(false);
+          setSelectedRelay(null);
+        }}
+      />
+    );
+  }
+
+
+  if (isDeclineModelVisible && selectedRelay) {
+    return (
+      <ConfirmModal
+        title="Decline Relay request"
+        content="Do you want to decline relay request"
+        cancelButtonText="Cancel"
+        successButtonText="Decline"
+        onSuccessClick={async () => {
+          await handleOnDeclineClick(selectedRelay.pubkey)
+          setIsDeclineModalVisible(false);
+          setSelectedRelay(null);
+        }}
+        onCancelClick={() => {
+          setIsDeclineModalVisible(false);
+          setSelectedRelay(null);
+        }}
+      />
+    );
+  }
+
+
 
   if (error || isFetching) {
     return (
@@ -51,11 +143,12 @@ export const RelayRequestsTable: React.FC = () => {
               <td className="p-3">{item.description}</td>
               <td className="p-3">{item.pricing}</td>
               <td className="p-3 text-center">
-                <pre>{JSON.stringify(item.contact_details, null, 2)}</pre>
+                <pre>{JSON.stringify(item.contactDetails, null, 2)}</pre>
               </td>
-              <td className="p-3">{item.balance}</td>
+              <td className="p-3">{item.pricing}</td>
               <td className="p-3 text-center space-x-3">
                 <button
+                onClick={() => onAcceptBtnClick(item)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >
@@ -67,9 +160,10 @@ export const RelayRequestsTable: React.FC = () => {
                   >
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                   </svg>
-                  <span>Edit</span>
+                  <span>Accept</span>
                 </button>
                 <button
+                onClick={() => onDeclineBtnClick(item)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >
@@ -85,7 +179,7 @@ export const RelayRequestsTable: React.FC = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>Delete</span>
+                  <span>Decline</span>
                 </button>
               </td>
             </tr>

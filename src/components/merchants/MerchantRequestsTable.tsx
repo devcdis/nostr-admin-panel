@@ -1,12 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   apiSlice,
+  IMerchantData,
   useListMerchantRequestsQuery,
 } from "../../store/slices/apiSlice";
 import { store } from "../../store/store";
+import { EditMerchantModal } from "./EditMerchantModal";
 
 export const MerchantRequestsTable: React.FC = () => {
-  // const data = useSelector((state: RootState) => state.merchants.approved);
+  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false);
+  const [selectedMerchantRequest, setSelectedMerchantRequest] =
+    useState<IMerchantData | null>(null);
   const {
     isFetching,
     data = [],
@@ -14,9 +18,19 @@ export const MerchantRequestsTable: React.FC = () => {
     refetch: refetchMerchants,
   } = useListMerchantRequestsQuery();
 
-  const handleOnAcceptClick = async (id: number) => {
+
+  const handleOnAcceptMerchantRequestClick = (item: IMerchantData) => {
+    setIsAcceptModalVisible(true)
+    setSelectedMerchantRequest(item)
+  }
+
+  const onAcceptMerchantRequest = async (data: {
+    pubkey: string;
+    balance: number;
+    approved_till: string;
+  }) => {
     const { error } = await store.dispatch(
-      apiSlice.endpoints.acceptMerchantRequest.initiate(id)
+      apiSlice.endpoints.acceptMerchantRequest.initiate(data)
     );
     if (error) {
       alert(
@@ -31,7 +45,7 @@ export const MerchantRequestsTable: React.FC = () => {
     }
   };
 
-  const handleOnDeclineClick = async (id: number) => {
+  const handleOnDeclineClick = async (id: string) => {
     const { error } = await store.dispatch(
       apiSlice.endpoints.declineMerchantRequest.initiate(id)
     );
@@ -47,6 +61,31 @@ export const MerchantRequestsTable: React.FC = () => {
       return;
     }
   };
+
+  if (isAcceptModalVisible && selectedMerchantRequest) {
+    return (
+      <EditMerchantModal
+        merchant={selectedMerchantRequest}
+        onCancelClick={() => {
+          setIsAcceptModalVisible(false);
+          setSelectedMerchantRequest(null);
+        }}
+        onUpdateClick={async (data) => {
+          if (!data.approvedTill) {
+            alert("approved_till is required and must be set.");
+            return;
+          }
+          await onAcceptMerchantRequest({
+            pubkey: data.pubkey,
+            approved_till: data.approvedTill,
+            balance: data.balance,
+          });
+          setIsAcceptModalVisible(false);
+          setSelectedMerchantRequest(null);
+        }}
+      />
+    );
+  }
 
   if (error || isFetching) {
     return (
@@ -99,7 +138,7 @@ export const MerchantRequestsTable: React.FC = () => {
               <td className="p-3">{item.balance}</td>
               <td className="p-3 text-center space-x-3">
                 <button
-                  onClick={() => handleOnAcceptClick(item.id)}
+                  onClick={() => handleOnAcceptMerchantRequestClick(item)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >
@@ -114,7 +153,7 @@ export const MerchantRequestsTable: React.FC = () => {
                   <span>Accept</span>
                 </button>
                 <button
-                  onClick={() => handleOnDeclineClick(item.id)}
+                  onClick={() => handleOnDeclineClick(item.pubkey)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >

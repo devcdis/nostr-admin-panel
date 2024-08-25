@@ -1,11 +1,77 @@
-import React from "react";
-import { useListMerchantsQuery } from "../../store/slices/apiSlice";
+import React, { useEffect, useState } from "react";
+import {
+  apiSlice,
+  IRelayData,
+  useListRelaysQuery
+} from "../../store/slices/apiSlice";
+import { store } from "../../store/store";
+import { ConfirmModal } from "../common/ConfirmModal";
+
+interface IApprovedRelaysState{
+  isFetching: boolean;
+  isError: boolean;
+  data: IRelayData[];
+  error: string;
+}
 
 export const ApprovedRelaysTable: React.FC = () => {
   // const data = useSelector((state: RootState) => state.merchants.approved);
-  const { isFetching, data = [], error } = useListMerchantsQuery();
+  const [selectedRelay, setSelectedRelay] = useState<IRelayData | null>(null);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const {
+    isFetching,
+    isError,
+    data=[],
+    error,
+    refetch: refetchRelays,
+  } = useListRelaysQuery();
 
-  if (error || isFetching) {
+
+
+  const handleOnShowDeleteModalClick = (item: IRelayData) => {
+    setSelectedRelay(item);
+    setIsDeleteModalVisible(true);
+  };
+
+  const onDeleteRelay = async (id: string) => {
+    const { error } = await store.dispatch(
+      apiSlice.endpoints.deleteMerchant.initiate(id)
+    );
+    if (error) {
+      alert(
+        `Failed to delete relay with error: ${
+          (error as unknown as { error: string }).error
+        }`
+      );
+
+      // refetch merchants
+      refetchRelays();
+      return;
+    }
+  };
+
+  // Delete Relay modal
+  if (isDeleteModalVisible && selectedRelay) {
+    return (
+      <ConfirmModal
+        title="Delete Relay"
+        content="Are you sure you want to delete this relay?"
+        cancelButtonText="Cancel"
+        successButtonText="Yes Delete it!"
+        onCancelClick={() => {
+          setSelectedRelay(null);
+          setIsDeleteModalVisible(false);
+        }}
+        onSuccessClick={async () => {
+          await onDeleteRelay(selectedRelay.pubkey);
+          setSelectedRelay(null);
+          setIsDeleteModalVisible(false);
+        }}
+      />
+    );
+  }
+
+  if (!!isError || !!isFetching) {
     return (
       <div className="border border-gray-200 rounded overflow-x-auto min-w-full bg-white">
         <div className="flex items-center justify-center rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 text-gray-400 py-64">
@@ -16,7 +82,7 @@ export const ApprovedRelaysTable: React.FC = () => {
     );
   }
 
-  return (
+    return (
     <div className="border border-gray-200 rounded overflow-x-auto min-w-full bg-white">
       <table className="min-w-full text-sm align-middle whitespace-nowrap">
         {/* Table Header */}
@@ -51,26 +117,13 @@ export const ApprovedRelaysTable: React.FC = () => {
               <td className="p-3">{item.description}</td>
               <td className="p-3">{item.pricing}</td>
               <td className="p-3 text-center">
-                <pre>{JSON.stringify(item.contact_details, null, 2)}</pre>
+                <pre>{JSON.stringify(item.contactDetails, null, 2)}</pre>
               </td>
-              <td className="p-3">{item.balance}</td>
+              <td className="p-3">{item.pricing}</td>
               <td className="p-3 text-center space-x-3">
                 <button
                   type="button"
-                  className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
-                >
-                  <svg
-                    className="hi-solid hi-pencil inline-block w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
+                  onClick={() => handleOnShowDeleteModalClick(item)}
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >
                   <svg

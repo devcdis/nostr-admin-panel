@@ -1,8 +1,16 @@
-import React from "react";
-import { apiSlice, useListMerchantsQuery } from "../../store/slices/apiSlice";
+import React, { useState } from "react";
+import {
+  apiSlice,
+  IMerchantData,
+  useListMerchantsQuery,
+} from "../../store/slices/apiSlice";
 import { store } from "../../store/store";
+import { EditMerchantModal } from "./EditMerchantModal";
 
 export const ApprovedMerchantsTable: React.FC = () => {
+  const [selectedMerchant, setSelectedMerchant] =
+    useState<IMerchantData | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const {
     isFetching,
     data = [],
@@ -10,7 +18,12 @@ export const ApprovedMerchantsTable: React.FC = () => {
     refetch: refetchMerchants,
   } = useListMerchantsQuery();
 
-  const onDeleteMerchant = async (id: number) => {
+  const handleOnShowEditModalClick = (item: IMerchantData) => {
+    setSelectedMerchant(item);
+    setIsEditModalVisible(true);
+  };
+
+  const onDeleteMerchant = async (id: string) => {
     const { error } = await store.dispatch(
       apiSlice.endpoints.deleteMerchant.initiate(id)
     );
@@ -26,6 +39,24 @@ export const ApprovedMerchantsTable: React.FC = () => {
       return;
     }
   };
+
+  // Edit Relay modal
+  if (isEditModalVisible && selectedMerchant !== null) {
+    return (
+      <EditMerchantModal
+        merchant={selectedMerchant}
+        onCancelClick={() => {
+          setSelectedMerchant(null);
+          setIsEditModalVisible(false);
+        }}
+        onUpdateClick={async () => {
+          await onDeleteMerchant(selectedMerchant.pubkey);
+          setSelectedMerchant(null);
+          setIsEditModalVisible(false);
+        }}
+      />
+    );
+  }
 
   if (error || isFetching) {
     return (
@@ -78,6 +109,7 @@ export const ApprovedMerchantsTable: React.FC = () => {
               <td className="p-3">{item.balance}</td>
               <td className="p-3 text-center space-x-3">
                 <button
+                  onClick={() => handleOnShowEditModalClick(item)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >
@@ -92,7 +124,7 @@ export const ApprovedMerchantsTable: React.FC = () => {
                   <span>Edit</span>
                 </button>
                 <button
-                  onClick={() => onDeleteMerchant(item.id)}
+                  onClick={() => onDeleteMerchant(item.pubkey)}
                   type="button"
                   className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-2 py-1 leading-5 text-sm rounded border-gray-300 bg-white text-gray-800 shadow-sm hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 hover:shadow focus:ring focus:ring-gray-500 focus:ring-opacity-25 active:bg-white active:border-white active:shadow-none"
                 >

@@ -1,43 +1,48 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // TODO: update data for merchants and relays based on response from api
-interface IMerchantData {
-  id: number;
+export interface IMerchantData {
   pubkey: string;
-  name: string;
-  description: string;
-  pricing: string;
-  contact_details: Record<string, string>;
-  latitude: number;
-  longitude: number;
-  balance: number;
-  advertised_on?: Date;
-  approved_at?: Date;
+    name: string,
+    description: string,
+    pricing: string,
+    contact_details: Record<string, string | number>,
+    latitude: number,
+    longitude: number,
+    balance: number,
+    advertisedOn?: string,
+    approvedTill?: string
 }
 
-interface IRelayData {
-  id: number;
+export interface IRelayData {
   pubkey: string;
   name: string;
-  description: string;
+  url: string;
   pricing: string;
-  contact_details: Record<string, string>;
+  description: string;
+  contactDetails: Record<string, string | number>;
   latitude: number;
   longitude: number;
-  balance: number;
-  advertised_on?: Date;
-  approved_at?: Date;
+  locationFormat: string;
+  approvedAt: Date;
+}
+
+export interface IRelayIDResponse{
+  id: string;
 }
 
 export const apiSlice = createApi({
+  keepUnusedDataFor:10,
   reducerPath: "api",
+  refetchOnFocus:true,
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:4000/",
     prepareHeaders(headers) {
-      // TODO: set api headers here.
-      // headers.set("", "");
+      headers.set("content-type", "application/json")
       return headers;
     },
+    keepalive: false,
+    cache: "no-cache",
   }),
   endpoints(builder) {
     return {
@@ -51,27 +56,62 @@ export const apiSlice = createApi({
         query: () => "/relays",
       }),
       listRelayRequests: builder.query<IRelayData[], void>({
-        query: () => "/relays/requests",
+        query: () => "/relay-requests",
       }),
-      acceptMerchantRequest: builder.mutation<IMerchantData, number>({
-        query: (id) => ({
-          url: `/merchants/requests/accept`,
-          method: "POST",
-          body: { id: id },
+      deleteRelay: builder.mutation<IRelayIDResponse, string>({
+        query: (pubkey) => ({
+          url: `/relays/${pubkey}`,
+          method: "DELETE"
         }),
       }),
-      declineMerchantRequest: builder.mutation<IMerchantData, number>({
-        query: (id) => ({
-          url: `/merchants/requests/decline`,
-          method: "POST",
-          body: { id: id },
+      acceptRelayRequest: builder.mutation<
+      IRelayIDResponse,
+        string
+      >({
+        query: (pubkey) => ({
+          url: `/relay-requests/accept/${pubkey}`,
+          method: "POST"
         }),
       }),
-      deleteMerchant: builder.mutation<IMerchantData, number>({
-        query: (id) => ({
+      declineRelayRequest: builder.mutation<
+      IRelayIDResponse,
+      string
+    >({
+      query: (pubkey) => ({
+        url: `/relay-requests/decline/${pubkey}`,
+        method: "POST"
+      }),
+    }),
+      acceptMerchantRequest: builder.mutation<
+      IRelayIDResponse,
+        { pubkey: string; approved_till: string; balance: number }
+      >({
+        query: (data) => ({
+          url: `/merchants/accept`,
+          method: "POST",
+          body: data,
+        }),
+      }),
+      declineMerchantRequest: builder.mutation<IRelayIDResponse, string>({
+        query: (pubkey) => ({
+          url: `/merchants/decline/${pubkey}`,
+          method: "POST"
+        }),
+      }),
+      deleteMerchant: builder.mutation<IMerchantData, IRelayIDResponse>({
+        query: (pubkey) => ({
+          url: `/merchants/${pubkey}`,
+          method: "DELETE"
+        }),
+      }),
+      editMerchant: builder.mutation<
+      IRelayIDResponse,
+        { pubkey: string; balance: number; approved_till: string }
+      >({
+        query: (data) => ({
           url: `/merchants`,
-          method: "DELETE",
-          body: { id: id },
+          method: "POST",
+          body: data,
         }),
       }),
     };
@@ -85,4 +125,7 @@ export const {
   useListRelayRequestsQuery,
   useAcceptMerchantRequestMutation,
   useDeclineMerchantRequestMutation,
+  useDeleteRelayMutation,
+  useAcceptRelayRequestMutation,
+  useDeclineRelayRequestMutation
 } = apiSlice;
