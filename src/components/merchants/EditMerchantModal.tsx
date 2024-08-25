@@ -75,7 +75,7 @@ export const EditMerchantModal: React.FC<IEditMerchantModalProps> = ({
               type="number"
               placeholder="2000"
               onChange={(event) =>
-                setData({ ...data, approvedTill: event.target.value })
+                setData({ ...data, balance: Number(event.target.value) || 0 })
               }
               value={data.balance}
             />
@@ -101,7 +101,7 @@ export const EditMerchantModal: React.FC<IEditMerchantModalProps> = ({
               Cancel
             </button>
             <button
-              onClick={() => onUpdateClick(data)}
+              onClick={() => onUpdateClick({...data})}
               type="button"
               className="inline-flex justify-center items-center space-x-2 border font-semibold focus:outline-none px-3 py-2 leading-5 text-sm rounded border-indigo-700 bg-indigo-700 text-white hover:text-white hover:bg-indigo-800 hover:border-indigo-800 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 active:bg-indigo-700 active:border-indigo-700"
             >

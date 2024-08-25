@@ -32,9 +32,9 @@ export interface IRelayIDResponse{
 }
 
 export const apiSlice = createApi({
-  keepUnusedDataFor:10,
+  keepUnusedDataFor:0,
   reducerPath: "api",
-  refetchOnFocus:true,
+  refetchOnFocus:false,
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:4000/",
     prepareHeaders(headers) {
@@ -98,7 +98,7 @@ export const apiSlice = createApi({
           method: "POST"
         }),
       }),
-      deleteMerchant: builder.mutation<IMerchantData, IRelayIDResponse>({
+      deleteMerchant: builder.mutation<IRelayIDResponse, string>({
         query: (pubkey) => ({
           url: `/merchants/${pubkey}`,
           method: "DELETE"

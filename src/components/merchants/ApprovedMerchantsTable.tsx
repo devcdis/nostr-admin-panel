@@ -40,6 +40,24 @@ export const ApprovedMerchantsTable: React.FC = () => {
     }
   };
 
+
+  const onEditMerchant = async (data: {pubkey: string; approved_till:string, balance: number }) => {
+    const { error } = await store.dispatch(
+      apiSlice.endpoints.editMerchant.initiate({pubkey: data.pubkey, approved_till: data.approved_till,balance: data.balance })
+    );
+    if (error) {
+      alert(
+        `Failed to edit merchant with error: ${
+          (error as unknown as { error: string }).error
+        }`
+      );
+
+      // refetch merchants
+      refetchMerchants();
+      return;
+    }
+  };
+
   // Edit Relay modal
   if (isEditModalVisible && selectedMerchant !== null) {
     return (
@@ -49,8 +67,12 @@ export const ApprovedMerchantsTable: React.FC = () => {
           setSelectedMerchant(null);
           setIsEditModalVisible(false);
         }}
-        onUpdateClick={async () => {
-          await onDeleteMerchant(selectedMerchant.pubkey);
+        onUpdateClick={async (data) => {
+          if(!data.approvedTill){
+            alert("approved till data must be set before saving");
+            return;
+          }
+          await onEditMerchant({pubkey: data.pubkey,approved_till:data.approvedTill, balance: data.balance});
           setSelectedMerchant(null);
           setIsEditModalVisible(false);
         }}

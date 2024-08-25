@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   apiSlice,
   IRelayData,
@@ -7,12 +7,6 @@ import {
 import { store } from "../../store/store";
 import { ConfirmModal } from "../common/ConfirmModal";
 
-interface IApprovedRelaysState{
-  isFetching: boolean;
-  isError: boolean;
-  data: IRelayData[];
-  error: string;
-}
 
 export const ApprovedRelaysTable: React.FC = () => {
   // const data = useSelector((state: RootState) => state.merchants.approved);
@@ -35,7 +29,7 @@ export const ApprovedRelaysTable: React.FC = () => {
 
   const onDeleteRelay = async (id: string) => {
     const { error } = await store.dispatch(
-      apiSlice.endpoints.deleteMerchant.initiate(id)
+      apiSlice.endpoints.deleteRelay.initiate(id)
     );
     if (error) {
       alert(
